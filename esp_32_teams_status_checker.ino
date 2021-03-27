@@ -151,10 +151,10 @@ bool showActivity(String presence) {
       colorWipe(strip.Color(0,   255,   0));
       break;
 
-    case Away:
-    case BeRightBack:
-      colorWipe(strip.Color(255,   150,   0));
-      break;
+//    case Away:
+//    case BeRightBack:
+//      colorWipe(strip.Color(255,   150,   0));
+//      break;
 
     case InAMeeting:
     case InACall:
