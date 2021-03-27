@@ -4,9 +4,9 @@
 #include <Arduino_JSON.h>
 
 #include <Adafruit_NeoPixel.h>
-#define LED_PIN 17
-#define LED_COUNT 8
-Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRBW + NEO_KHZ800);
+#define LED_PIN 23
+#define LED_COUNT 3
+Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 #include "credentials.h"
 
@@ -30,7 +30,7 @@ const char* graphPresenceEndpoint = "https://graph.microsoft.com/beta/me/presenc
 
 void setup() {
   strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
-  strip.show();            // Turn OFF all pixels ASAP
+  strip.show();            // Turn OFF all pixels
   strip.setBrightness(50); // Set BRIGHTNESS to about 1/5 (max = 255)
 
   Serial.begin(115200);
@@ -71,12 +71,22 @@ void loop() {
   else if (refresh_token != "") {
     refreshAccessToken();
   }
-  else if (!recoverRefreshToken()) {
+  else if (recoverRefreshToken()) {
+    Serial.print("\nRecovered RefreshToken from EEPROM: ");
+    Serial.println(refresh_token);
+    Serial.println("Enter \"reset\" to delete RefreshToken and re-authenticate.");
+  }
+  else {
     Serial.println("Could not recover refresh token. Authenticate.");
     authenticate();
   }
   
-  delay(refresh_interval);
+  if (getSerialInput(refresh_interval).indexOf("reset") > -1) {
+    Serial.println("Resetting.");
+    refresh_token = "";
+    access_token = "";
+    clearEEPROM();
+  };
 }
 
 enum Activities {
@@ -174,8 +184,8 @@ bool showAvailability(String presence) {
 
 void authenticate() {
   String deviceCode = getDeviceCode();
-  Serial.println("Proceed by pressing any key: ");
-  getSerialInput();
+  Serial.println("Proceed by entering any key. ");
+  getSerialInput(0);
   getAccessToken(deviceCode);
   persistRefreshToken();
 }
@@ -265,7 +275,6 @@ void getAccessToken(String device_code) {
           Serial.println(jsonObject["error_description"]);
         }
         http.end();
-        loop();
       }
     }
   }
@@ -369,14 +378,22 @@ String appendRequestData(String in, String key, String value) {
   }
 }
 
-String getSerialInput() {
+String getSerialInput(int timeout) {
   String incomimgString = "";
+  long start = millis();
   while (true) {
+    if ( timeout != 0 && (millis() - start > timeout)) {
+      return incomimgString;
+    }
     if (Serial.available()) {
       incomimgString = Serial.readString();
       return incomimgString;
     }
   }
+}
+
+void clearEEPROM(){
+  WriteEeprom(TOKEN_EEPROM_ADDR, TOKEN_EEPROM_SIZE, "");
 }
 
 void persistRefreshToken() {
@@ -388,8 +405,6 @@ void persistRefreshToken() {
 
 bool recoverRefreshToken() {
   refresh_token = ReadEeprom(TOKEN_EEPROM_ADDR, TOKEN_EEPROM_SIZE);
-  Serial.print("\nRecovered RefreshToken: ");
-  Serial.println(refresh_token);
   if (refresh_token == "") {
     return false;
   }
@@ -421,8 +436,8 @@ String ReadEeprom(int addr, int eepromSize) {
   for (int i = 0; i < eepromSize; i++) {
     byte readValue = EEPROM.read(i + addr);
 
-    if (readValue == 0) {
-      break;
+    if (readValue == 0 || readValue == 0xFF) {
+      return output;
     }
     output += char(readValue);
   }
