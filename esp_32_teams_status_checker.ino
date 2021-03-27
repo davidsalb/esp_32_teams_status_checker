@@ -21,7 +21,6 @@ typedef struct {
   String activity;
 } presenceStatus;
 
-int refresh_counter = 0;
 int refresh_interval = 10000; // [ms]
 
 const char* tokenEndpoint = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
@@ -61,8 +60,6 @@ void loop() {
     presenceStatus presence = getPresence();
     showStatus(presence);
 
-    refresh_counter ++;
-    Serial.print(refresh_counter);
     Serial.print(" PresenceStatus (Availability, Activity): ");
     Serial.print(presence.availability);
     Serial.print(", ");
@@ -72,15 +69,15 @@ void loop() {
     refreshAccessToken();
   }
   else if (recoverRefreshToken()) {
-    Serial.print("\nRecovered RefreshToken from EEPROM: ");
-    Serial.println(refresh_token);
+    Serial.println("Retrieve new RefreshToken.");
+    refreshAccessToken(); // we don't know how old the refreshToken is so better renew it
     Serial.println("Enter \"reset\" to delete RefreshToken and re-authenticate.");
   }
   else {
     Serial.println("Could not recover refresh token. Authenticate.");
     authenticate();
   }
-  
+
   if (getSerialInput(refresh_interval).indexOf("reset") > -1) {
     Serial.println("Resetting.");
     refresh_token = "";
@@ -151,10 +148,10 @@ bool showActivity(String presence) {
       colorWipe(strip.Color(0,   255,   0));
       break;
 
-//    case Away:
-//    case BeRightBack:
-//      colorWipe(strip.Color(255,   150,   0));
-//      break;
+    //    case Away:
+    //    case BeRightBack:
+    //      colorWipe(strip.Color(255,   150,   0));
+    //      break;
 
     case InAMeeting:
     case InACall:
@@ -224,7 +221,6 @@ presenceStatus getPresence() {
     }
     else if (httpCode == 401) {
       access_token = "";
-      refresh_counter ++;
       loop();
     }
     http.end();
@@ -392,29 +388,26 @@ String getSerialInput(int timeout) {
   }
 }
 
-void clearEEPROM(){
+void clearEEPROM() {
   WriteEeprom(TOKEN_EEPROM_ADDR, TOKEN_EEPROM_SIZE, "");
 }
 
 void persistRefreshToken() {
   if (refresh_token != "") {
-    WriteEeprom(TOKEN_EEPROM_ADDR, TOKEN_EEPROM_SIZE, StringToCharArray(refresh_token));
     Serial.println("Persist RefreshToken to EEPROM");
+    WriteEeprom(TOKEN_EEPROM_ADDR, TOKEN_EEPROM_SIZE, StringToCharArray(refresh_token));
   }
 }
 
 bool recoverRefreshToken() {
+  Serial.print("Recover RefreshToken from EEPROM: ");
   refresh_token = ReadEeprom(TOKEN_EEPROM_ADDR, TOKEN_EEPROM_SIZE);
   if (refresh_token == "") {
+    Serial.println("failed");
     return false;
   }
-  else {
-    refreshAccessToken();
-    if (refresh_token == "") {
-      return false;
-    }
-    return true;
-  }
+  Serial.println(refresh_token);
+  return true;
 }
 
 char* StringToCharArray(String input) {
