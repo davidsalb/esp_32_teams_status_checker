@@ -33,7 +33,7 @@ void setup() {
   strip.setBrightness(50); // Set BRIGHTNESS to about 1/5 (max = 255)
 
   Serial.begin(115200);
-  Serial.println("starting now...");
+  Serial.println("Version: v1.0");
 
   if (!EEPROM.begin(TOKEN_EEPROM_SIZE)) {
     Serial.println("failed to init EEPROM");
@@ -56,6 +56,13 @@ void setup() {
 }
 
 void loop() {
+  if (getSerialInput(refresh_interval).indexOf("reset") > -1) {
+    Serial.println("Resetting.");
+    refresh_token = "";
+    access_token = "";
+    clearEEPROM();
+  };
+
   if (access_token != "") {
     presenceStatus presence = getPresence();
     showStatus(presence);
@@ -77,13 +84,6 @@ void loop() {
     Serial.println("Could not recover refresh token. Authenticate.");
     authenticate();
   }
-
-  if (getSerialInput(refresh_interval).indexOf("reset") > -1) {
-    Serial.println("Resetting.");
-    refresh_token = "";
-    access_token = "";
-    clearEEPROM();
-  };
 }
 
 enum Activities {
@@ -221,7 +221,6 @@ presenceStatus getPresence() {
     }
     else if (httpCode == 401) {
       access_token = "";
-      loop();
     }
     http.end();
   }
@@ -321,7 +320,6 @@ void refreshAccessToken() {
       refresh_token = "";
     }
     http.end();
-    loop();
   }
 }
 
