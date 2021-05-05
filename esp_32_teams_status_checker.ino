@@ -285,15 +285,20 @@ void refreshAccessToken() {
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
     String requestData = appendRequestData("", "client_id", client_id);
-    requestData = appendRequestData(requestData, "scope", "openid Presence.Read profile User.Read email");
+    requestData = appendRequestData(requestData, "scope", "openid Presence.Read profile email");
     requestData = appendRequestData(requestData, "refresh_token", refresh_token);
     requestData = appendRequestData(requestData, "grant_type", "refresh_token");
+//    Serial.println("Request-Data:");
+//    Serial.println(requestData);
 
     int httpCode = http.POST(requestData);
     Serial.print("POST refreshAccessToken HTTP-Code: ");
     Serial.println(httpCode);
 
     String payload = http.getString();
+//    Serial.println("Payload:");
+//    Serial.println(payload);
+
     if (httpCode == 200) {
       JSONVar jsonObject = JSON.parse(payload);
 
