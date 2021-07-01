@@ -33,29 +33,21 @@ void setup() {
   strip.setBrightness(50); // Set BRIGHTNESS to about 1/5 (max = 255)
 
   Serial.begin(115200);
-  Serial.println("Version: v1.0");
+  Serial.println("Version: v1.1");
 
   if (!EEPROM.begin(TOKEN_EEPROM_SIZE)) {
     Serial.println("failed to init EEPROM");
   }
   delay(1000);
 
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting to WiFi..");
-  while (WiFi.status() != WL_CONNECTED) {
-    colorWipe(strip.Color(0,   0,   255));
-    delay(500);
-    colorWipe(strip.Color(0,   0,   0));
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println();
-
-  Serial.print("Connected to the WiFi network ");
-  Serial.println(ssid);
+  connectWifi();
 }
 
 void loop() {
+  if (WiFi.status() != WL_CONNECTED) {
+    connectWifi();
+  }
+
   if (getSerialInput(refresh_interval).indexOf("reset") > -1) {
     Serial.println("Resetting.");
     refresh_token = "";
@@ -98,6 +90,24 @@ enum Activities {
   Busy,          // 8
   DoNotDisturb,  // 9
 };
+
+void connectWifi() {
+
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to ");
+  Serial.print(ssid);
+  while (WiFi.status() != WL_CONNECTED) {
+    colorWipe(strip.Color(0,   0,   255));
+    delay(500);
+    colorWipe(strip.Color(0,   0,   0));
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println();
+
+  Serial.print("Connected to the WiFi network ");
+  Serial.println(ssid);
+}
 
 int resolveActivities(String presence) {
   Activities output = Default;
@@ -288,16 +298,16 @@ void refreshAccessToken() {
     requestData = appendRequestData(requestData, "scope", "openid Presence.Read profile email");
     requestData = appendRequestData(requestData, "refresh_token", refresh_token);
     requestData = appendRequestData(requestData, "grant_type", "refresh_token");
-//    Serial.println("Request-Data:");
-//    Serial.println(requestData);
+    //    Serial.println("Request-Data:");
+    //    Serial.println(requestData);
 
     int httpCode = http.POST(requestData);
     Serial.print("POST refreshAccessToken HTTP-Code: ");
     Serial.println(httpCode);
 
     String payload = http.getString();
-//    Serial.println("Payload:");
-//    Serial.println(payload);
+    //    Serial.println("Payload:");
+    //    Serial.println(payload);
 
     if (httpCode == 200) {
       JSONVar jsonObject = JSON.parse(payload);
