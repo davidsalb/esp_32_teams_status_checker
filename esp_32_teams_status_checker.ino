@@ -163,7 +163,7 @@ bool showActivity(String presence) {
     //      colorWipe(strip.Color(255,   150,   0));
     //      break;
 
-    case InAMeeting:
+    // case InAMeeting:
     case InACall:
     case Presenting:
       colorWipe(strip.Color(100,   0,   255));
@@ -185,8 +185,23 @@ bool showActivity(String presence) {
 
 bool showAvailability(String presence) {
   Serial.println("showAvailability called");
-  // not implemented yet
-  return false;
+   switch (resolveActivities(presence)) {
+
+    case Available:
+      colorWipe(strip.Color(0,   255,   0));
+      break;
+
+    case Busy:
+      colorWipe(strip.Color(255,   0,  10));
+      break;
+
+    default:
+      colorWipe(strip.Color(0,   0,   0));
+      return false;
+      break;
+
+      return true;
+  }
 }
 
 void authenticate() {
