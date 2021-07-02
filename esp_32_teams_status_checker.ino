@@ -145,9 +145,11 @@ int resolveActivities(String presence) {
 
 void showStatus(presenceStatus presence) {
 
-  if (!showActivity(presence.activity)) {
-    Serial.println("could not resolve activity!");
-    showAvailability(presence.availability);
+  if (!showActivity(presence.activity)) {    
+    if (!showAvailability(presence.availability)) {
+      colorWipe(strip.Color(0,   0,   0));
+      Serial.println("could not resolve presence!");
+    }
   }
 }
 
@@ -175,7 +177,6 @@ bool showActivity(String presence) {
       break;
 
     default:
-      colorWipe(strip.Color(0,   0,   0));
       return false;
       break;
 
@@ -185,7 +186,7 @@ bool showActivity(String presence) {
 
 bool showAvailability(String presence) {
   Serial.println("showAvailability called");
-   switch (resolveActivities(presence)) {
+  switch (resolveActivities(presence)) {
 
     case Available:
       colorWipe(strip.Color(0,   255,   0));
@@ -196,7 +197,6 @@ bool showAvailability(String presence) {
       break;
 
     default:
-      colorWipe(strip.Color(0,   0,   0));
       return false;
       break;
 
